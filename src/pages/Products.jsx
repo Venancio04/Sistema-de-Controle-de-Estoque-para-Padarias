@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import ProductCard from "@/components/products/ProductCard";
 import ProductForm from "@/components/products/ProductForm";
 import StockMovementForm from "@/components/products/StockMovementForm";
+import PullToRefresh from "@/components/PullToRefresh";
 
 const categories = [
   { value: "all", label: "Todas" },
@@ -38,19 +39,42 @@ export default function Products() {
     queryFn: () => base44.entities.Product.list('-created_date')
   });
 
+  const handleRefresh = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['products'] });
+  };
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Product.create(data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['products'] })
+    onMutate: async (newProduct) => {
+      await queryClient.cancelQueries({ queryKey: ['products'] });
+      const previous = queryClient.getQueryData(['products']);
+      queryClient.setQueryData(['products'], old => [
+        { ...newProduct, id: '__temp__', created_date: new Date().toISOString() },
+        ...(old || [])
+      ]);
+      return { previous };
+    },
+    onError: (_, __, ctx) => queryClient.setQueryData(['products'], ctx.previous),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['products'] })
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Product.update(id, data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['products'] })
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: ['products'] });
+      const previous = queryClient.getQueryData(['products']);
+      queryClient.setQueryData(['products'], old =>
+        (old || []).map(p => p.id === id ? { ...p, ...data } : p)
+      );
+      return { previous };
+    },
+    onError: (_, __, ctx) => queryClient.setQueryData(['products'], ctx.previous),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['products'] })
   });
 
   const createMovementMutation = useMutation({
     mutationFn: (data) => base44.entities.StockMovement.create(data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['movements'] })
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['movements'] })
   });
 
   const handleSaveProduct = async (data) => {
@@ -64,110 +88,107 @@ export default function Products() {
 
   const handleSaveMovement = async (movementData, newStock) => {
     await createMovementMutation.mutateAsync(movementData);
-    await updateMutation.mutateAsync({ 
-      id: stockProduct.id, 
-      data: { current_stock: newStock } 
+    await updateMutation.mutateAsync({
+      id: stockProduct.id,
+      data: { current_stock: newStock }
     });
   };
 
   const filteredProducts = products.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = category === "all" || p.category === category;
-    const matchesActive = showActive === "all" || 
+    const matchesActive = showActive === "all" ||
       (showActive === "active" && p.is_active !== false) ||
       (showActive === "inactive" && p.is_active === false);
     return matchesSearch && matchesCategory && matchesActive;
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50 p-4 md:p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-800">Produtos</h1>
-            <p className="text-slate-500 mt-1">Gerencie seu catálogo de produtos</p>
-          </div>
-          <Button onClick={() => { setEditingProduct(null); setShowForm(true); }} className="bg-amber-600 hover:bg-amber-700">
-            <Plus className="w-4 h-4 mr-2" />
-            Novo Produto
-          </Button>
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-col md:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <Input 
-              placeholder="Buscar produto..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="w-full md:w-40">
-              <SelectValue placeholder="Categoria" />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map(cat => (
-                <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Tabs value={showActive} onValueChange={setShowActive}>
-            <TabsList>
-              <TabsTrigger value="active">Ativos</TabsTrigger>
-              <TabsTrigger value="inactive">Inativos</TabsTrigger>
-              <TabsTrigger value="all">Todos</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
-
-        {/* Products Grid */}
-        {isLoading ? (
-          <div className="grid md:grid-cols-2 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <Skeleton key={i} className="h-40 rounded-xl" />
-            ))}
-          </div>
-        ) : filteredProducts.length === 0 ? (
-          <div className="text-center py-16">
-            <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-slate-600">Nenhum produto encontrado</h3>
-            <p className="text-slate-500 mt-1">Cadastre seu primeiro produto para começar</p>
-            <Button onClick={() => setShowForm(true)} className="mt-4 bg-amber-600 hover:bg-amber-700">
+    <PullToRefresh onRefresh={handleRefresh}>
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 p-4 md:p-6">
+        <div className="max-w-6xl mx-auto space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-white">Produtos</h1>
+              <p className="text-slate-500 dark:text-slate-400 mt-1">Gerencie seu catálogo de produtos</p>
+            </div>
+            <Button onClick={() => { setEditingProduct(null); setShowForm(true); }} className="bg-amber-600 hover:bg-amber-700">
               <Plus className="w-4 h-4 mr-2" />
-              Cadastrar Produto
+              Novo Produto
             </Button>
           </div>
-        ) : (
-          <div className="grid md:grid-cols-2 gap-4">
-            {filteredProducts.map(product => (
-              <ProductCard 
-                key={product.id}
-                product={product}
-                onEdit={(p) => { setEditingProduct(p); setShowForm(true); }}
-                onStock={(p) => setStockProduct(p)}
+
+          <div className="flex flex-col md:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Input
+                placeholder="Buscar produto..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10"
               />
-            ))}
+            </div>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger className="w-full md:w-40">
+                <SelectValue placeholder="Categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map(cat => (
+                  <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Tabs value={showActive} onValueChange={setShowActive}>
+              <TabsList>
+                <TabsTrigger value="active">Ativos</TabsTrigger>
+                <TabsTrigger value="inactive">Inativos</TabsTrigger>
+                <TabsTrigger value="all">Todos</TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
-        )}
+
+          {isLoading ? (
+            <div className="grid md:grid-cols-2 gap-4">
+              {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-40 rounded-xl" />)}
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="text-center py-16">
+              <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-slate-600 dark:text-slate-400">Nenhum produto encontrado</h3>
+              <p className="text-slate-500 mt-1">Cadastre seu primeiro produto para começar</p>
+              <Button onClick={() => setShowForm(true)} className="mt-4 bg-amber-600 hover:bg-amber-700">
+                <Plus className="w-4 h-4 mr-2" />
+                Cadastrar Produto
+              </Button>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-4">
+              {filteredProducts.map(product => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onEdit={(p) => { setEditingProduct(p); setShowForm(true); }}
+                  onStock={(p) => setStockProduct(p)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      <ProductForm 
+      <ProductForm
         open={showForm}
         onClose={() => { setShowForm(false); setEditingProduct(null); }}
         product={editingProduct}
         onSave={handleSaveProduct}
       />
 
-      <StockMovementForm 
+      <StockMovementForm
         open={!!stockProduct}
         onClose={() => setStockProduct(null)}
         product={stockProduct}
         onSave={handleSaveMovement}
       />
-    </div>
+    </PullToRefresh>
   );
 }

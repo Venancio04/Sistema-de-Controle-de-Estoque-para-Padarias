@@ -50,6 +50,7 @@
 import Dashboard from './pages/Dashboard';
 import Products from './pages/Products';
 import Movements from './pages/Movements';
+import Replenishment from './pages/Replenishment';
 import __Layout from './Layout.jsx';
 
 
@@ -57,6 +58,7 @@ export const PAGES = {
     "Dashboard": Dashboard,
     "Products": Products,
     "Movements": Movements,
+    "Replenishment": Replenishment,
 }
 
 export const pagesConfig = {

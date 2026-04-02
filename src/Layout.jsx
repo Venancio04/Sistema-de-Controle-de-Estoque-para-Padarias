@@ -1,13 +1,14 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { LayoutDashboard, Package, History, Menu, X } from "lucide-react";
+import { LayoutDashboard, Package, History, Menu, X, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { name: "Dashboard", icon: LayoutDashboard, page: "Dashboard" },
   { name: "Produtos", icon: Package, page: "Products" },
+  { name: "Reposição", icon: ShoppingCart, page: "Replenishment" },
   { name: "Movimentações", icon: History, page: "Movements" }
 ];
 

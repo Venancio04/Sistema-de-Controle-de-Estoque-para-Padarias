@@ -1,0 +1,35 @@
+{
+  "name": "Supplier",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nome do fornecedor"
+    },
+    "contact": {
+      "type": "string",
+      "description": "Contato (telefone/email)"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "paes",
+        "bolos",
+        "salgados",
+        "doces",
+        "bebidas",
+        "lanches",
+        "ingredientes",
+        "outros"
+      ],
+      "description": "Categoria principal"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observa\u00e7\u00f5es"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

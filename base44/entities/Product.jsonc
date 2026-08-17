@@ -1,0 +1,69 @@
+{
+  "name": "Product",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nome do produto"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "paes",
+        "bolos",
+        "salgados",
+        "doces",
+        "bebidas",
+        "lanches",
+        "ingredientes",
+        "outros"
+      ],
+      "description": "Categoria do produto"
+    },
+    "unit": {
+      "type": "string",
+      "enum": [
+        "unidade",
+        "kg",
+        "g",
+        "litro",
+        "ml",
+        "pacote",
+        "caixa"
+      ],
+      "default": "unidade",
+      "description": "Unidade de medida"
+    },
+    "cost_price": {
+      "type": "number",
+      "description": "Pre\u00e7o de custo"
+    },
+    "sale_price": {
+      "type": "number",
+      "description": "Pre\u00e7o de venda"
+    },
+    "current_stock": {
+      "type": "number",
+      "default": 0,
+      "description": "Quantidade atual em estoque"
+    },
+    "min_stock": {
+      "type": "number",
+      "default": 5,
+      "description": "Estoque m\u00ednimo para alerta"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "Imagem do produto"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Produto ativo"
+    }
+  },
+  "required": [
+    "name",
+    "category"
+  ]
+}

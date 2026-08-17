@@ -1,0 +1,44 @@
+{
+  "name": "StockMovement",
+  "type": "object",
+  "properties": {
+    "product_id": {
+      "type": "string",
+      "description": "ID do produto"
+    },
+    "product_name": {
+      "type": "string",
+      "description": "Nome do produto (para refer\u00eancia r\u00e1pida)"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "entrada",
+        "saida",
+        "ajuste"
+      ],
+      "description": "Tipo de movimenta\u00e7\u00e3o"
+    },
+    "quantity": {
+      "type": "number",
+      "description": "Quantidade movimentada"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Motivo da movimenta\u00e7\u00e3o"
+    },
+    "previous_stock": {
+      "type": "number",
+      "description": "Estoque anterior"
+    },
+    "new_stock": {
+      "type": "number",
+      "description": "Novo estoque"
+    }
+  },
+  "required": [
+    "product_id",
+    "type",
+    "quantity"
+  ]
+}
